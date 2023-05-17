@@ -1,17 +1,34 @@
-
+import Coords from "../map/Coords.js";
 export default class Entity {
 
+	//Координаты в пикселях
 	#x;
 	#y;
 	#width;
 	#height;
+	//координаты на сетке
+	#hexCoords
 
-	constructor(handler, x, y, width, height) {
-		this.#x = x
-		this.#y = y
+	constructor(handler, q, r, width, height) {
+		this.#hexCoords = { q: q, r: r }
 		this.#width = width
 		this.#height = height
 		this._handler = handler
+		this.place(q, r)
+	}
+
+	/**
+	 * Используются координаты гесогональной сетки
+	 * @param {*} x 
+	 * @param {*} y 
+	 */
+	place(q, r) {
+		this.#hexCoords = { q: q, r: r }
+		let pixelCoords = Coords.hex_to_pixel(q, r)
+		console.log(q,r)
+
+		this.#x = pixelCoords.x
+		this.#y = pixelCoords.y
 	}
 
 	tick(_dt) { }
@@ -22,6 +39,10 @@ export default class Entity {
 	}
 	get y() {
 		return this.#y;
+	}
+
+	get hexCoords() {
+		return this.#hexCoords
 	}
 	get width() {
 		return this.#width;
@@ -34,6 +55,9 @@ export default class Entity {
 	}
 	set y(y) {
 		this.#y = y;
+	}
+	set hexCoords(hexCoords) {
+		this.#hexCoords = hexCoords;
 	}
 	set width(width) {
 		this.#width = width;

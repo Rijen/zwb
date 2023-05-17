@@ -1,3 +1,4 @@
+import Coords from "../../map/Coords.js";
 import Entity from "../Entity.js";
 const
 	DEFAULT_SPEED = 250,
@@ -10,8 +11,9 @@ export default class Creature extends Entity {
 	#health;
 	#speed;
 
-	constructor(handler, x, y, width, height) {
-		super(handler, x, y, width, height)
+	constructor(handler, q, r, width, height) {
+		super(handler, q, r, width, height)
+
 		this.#health = DEFAULT_HEALTH;
 		this.#speed = DEFAULT_SPEED;
 		this.xMove = 0;
@@ -19,14 +21,25 @@ export default class Creature extends Entity {
 	}
 
 	move() {
-		this.#moveX()
+		// let prevX = this.posX
+		// let prevY = this.posY
 		this.#moveY()
+		this.#moveX()
+		// if (prevX != this.posX || prevY != this.posY)
+		// 	this.place(this.posX, this.posY)
+
+		this.hexCoords = Coords.pixel_to_hex(
+			this.x,
+			this.y-8)
+
 	}
 	#moveX() {
 		this.x += this.xMove
+		// this.posX = Math.round((this.x + this.width / 2 - 21 + (this.posY *21)) / 42)
 	}
 	#moveY() {
 		this.y += this.yMove
+		// this.posY = Math.round((this.y + this.height - 24) / 24)
 	}
 	//Getters
 	get health() {

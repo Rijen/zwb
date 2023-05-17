@@ -6,7 +6,8 @@ import GameState from "./States/GameState.js";
 import LoadingState from "./States/LoadingState.js";
 import KeyManager from "./input/KeyManager.js";
 import Handler from "./Handler.js";
-
+import Camera from "./gfx/Camera.js";
+import MouseManager from "./input/MouseManager.js";
 
 export default class Game {
 
@@ -15,6 +16,8 @@ export default class Game {
 	#width;
 	#height;
 	#keyManager;
+	#mouseManager;
+	#camera;
 
 	#display;
 	#g;
@@ -26,7 +29,8 @@ export default class Game {
 		this.#title = title
 		this.#width = width
 		this.#height = height
-		this.#keyManager = new KeyManager();
+
+
 	}
 
 	start() {
@@ -69,7 +73,12 @@ export default class Game {
 		this.#display = new Display(this.#title, this.#width, this.#height)
 		this.#g = this.#display.graphics
 
+		this.#keyManager = new KeyManager();
+
 		let handler = new Handler(this);
+		
+		this.#camera = new Camera(handler, 0, 0)
+		this.#mouseManager = new MouseManager(handler)
 		this.#gameState = new GameState(handler);
 		this.#loadingState = new LoadingState(handler, this.#gameState);
 		State.state = this.#loadingState
@@ -77,6 +86,7 @@ export default class Game {
 
 	#tick(_dt) {
 		this.#keyManager.tick();
+		this.#mouseManager.tick();
 		if (State.state != null)
 			State.state.tick(_dt)
 	}
@@ -88,8 +98,15 @@ export default class Game {
 
 	}
 
+	get mouseManager() {
+		return this.#mouseManager;
+	}
 	get keyManager() {
 		return this.#keyManager;
+	}
+
+	get camera() {
+		return this.#camera;
 	}
 
 	get width() {

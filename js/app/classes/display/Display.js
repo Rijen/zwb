@@ -45,6 +45,7 @@ export default class Display {
 		var body = document.body
 		body.innerHTML = `<canvas id='canvas' width='${this.#width}' height='${this.#height}'></canvas>`
 		this.#graphics = document.getElementById('canvas').getContext('2d');
+		// this.#graphics.scale(1.5, 1.5) 
 
 	}
 };
