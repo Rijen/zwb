@@ -1,9 +1,10 @@
-import Coords from '../map/Coords.js';
+import GridEntity from '../map/GridEntity.js';
 export default class MouseManager {
 	#mouseX
 	#mouseY
-	#hexCoords
 	#handler
+
+	#gridEntity
 	constructor(handler) {
 		this.#handler = handler
 		var $canvas = $("#canvas");
@@ -14,12 +15,13 @@ export default class MouseManager {
 			e.preventDefault();
 			e.stopPropagation();
 			this.#mouseX = parseInt(e.clientX - offsetX);
-			this.#mouseY = parseInt(e.clientY - offsetY);
+			this.#mouseY = parseInt(e.clientY - offsetY+$(window).scrollTop());
 		}
+		this.#gridEntity = new GridEntity(0, 0)
 	}
 
 	tick() {
-		this.#hexCoords = Coords.pixel_to_hex(
+		this.#gridEntity.setPixel(
 			this.#mouseX + this.#handler.camera.xOffset,
 			this.#mouseY + this.#handler.camera.yOffset
 		)
@@ -30,8 +32,8 @@ export default class MouseManager {
 	get mouseY() {
 		return this.#mouseY
 	}
-	get hexCoords() {
-		return this.#hexCoords
+	get gridEntity() {
+		return this.#gridEntity
 	}
 };
 

@@ -1,0 +1,13 @@
+{
+    "bgAsset": "mapStreet",
+    "bg": [
+        [
+            "tile2",
+            "tile4"
+        ],
+        [
+            "tile8",
+            "tile0"
+        ]
+    ]
+}

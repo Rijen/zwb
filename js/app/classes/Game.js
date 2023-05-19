@@ -42,8 +42,9 @@ export default class Game {
 
 	#run() {
 		this.#init();
-		var fps = 30;
+		var fps = 60;
 		var timePerTick = 1000 / fps;
+		// let timePerTick=1
 		var delta = 0;
 		var now;
 		var lastTime = Date.now();

@@ -1,6 +1,6 @@
 
 import { assetsCtl as Assets } from '/js/app/classes/gfx/Assets.js';
-import Coords from '../map/Coords.js';
+
 export default class DebugUI {
     #handler
     #panel
@@ -11,11 +11,11 @@ export default class DebugUI {
     }
 
     tick(dt) {
-
+        this.dt = dt
     }
 
     render(g) {
-        let startY = this.#handler.height - this.#panel.height - 10
+        let startY = this.#handler.height - this.#panel.height-10
         g.cDrawImage(this.#panel.defCrop,
             10,
             startY,
@@ -26,22 +26,27 @@ export default class DebugUI {
         let gridX = mm.mouseX + this.#handler.camera.xOffset
         let gridY = mm.mouseY + this.#handler.camera.yOffset
 
-        let d3 = Coords.hex_distance(mm.hexCoords, this.#handler.player.hexCoords)
+        let d3 = this.#handler.player.distanceTo(mm.gridEntity)
 
         g.fillStyle = '#3bd141';
         g.textAlign = 'left'
         g.font = '14px Jura'
-        g.fillText(`MousePosition`, 30, startY + 20);
-        g.fillText(`X: ${mm.mouseX}`, 140, startY + 20);
-        g.fillText(`Y: ${mm.mouseY}`, 190, startY + 20);
+        startY-=5
+        g.fillText(`Screen`, 20, startY + 15);
+        g.fillText(`X: ${mm.mouseX}`, 80, startY + 15);
+        g.fillText(`Y: ${mm.mouseY}`, 130, startY + 15);
+        g.fillText(`Map`, 20, startY + 30);
+        g.fillText(`X: ${gridX}`, 80, startY + 30);
+        g.fillText(`Y: ${gridY}`, 130, startY + 30);
+
+        g.fillText(`Q: ${mm.gridEntity.cube.q}`, 20, startY + 60);
+        g.fillText(`R: ${mm.gridEntity.cube.r}`, 60, startY + 60);
+        g.fillText(`S: ${mm.gridEntity.cube.s}`, 100, startY + 60);
+        g.fillText(`D: ${d3}`, 150, startY + 60);
 
 
-        g.fillText(`Q: ${mm.hexCoords.q}`, 140, startY + 35);
-        g.fillText(`R: ${mm.hexCoords.r}`, 190, startY + 35);
-        g.fillText(`D: ${d3}`, 240, startY + 35);
-
-
-        g.fillText(`X: ${gridX}`, 140, startY + 50);
-        g.fillText(`Y: ${gridY}`, 190, startY + 50);
+       
+        g.fillText(`FPS: ${Math.floor(1/this.dt)}`, 230, startY + 15);
+        g.fillText(`Δt: ${this.dt*1000}`, 230, startY + 30);
     }
 }

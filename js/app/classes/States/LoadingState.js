@@ -17,12 +17,12 @@ export default class LoadingState extends State {
 
 	tick(dt) {
 		if (this.#prc < 100) {
-			this.#prc += 50 / dt / 1000
+			this.#prc += 100 / dt / 1000
 		}
 		if (this.#prc > 100)
 			this.#prc = 100
 		this.#sec += 1 / dt / 1000;
-		if (this.#sec > 0.3)
+		if (this.#prc >= 100)
 			State.state = this.#gameState
 	}
 	render(g) {

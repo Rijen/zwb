@@ -1,23 +1,23 @@
 
 export default class KeyManager {
 	#keys = [];
-	#keysByKey = [];
+	#keysByCode = [];
 	constructor() {
 		window.onkeydown = (e) => {
 			this.#keys[e.keyCode] = true;
-			this.#keysByKey[e.key] = true;
+			this.#keysByCode[e.code] = true;
 		}
 		window.onkeyup = (e) => {
 			this.#keys[e.keyCode] = false;
-			this.#keysByKey[e.key] = false;
+			this.#keysByCode[e.code] = false;
 		}
 	}
 
 	tick() {
-		this.up = this.#keysByKey['w'] || this.#keysByKey['ArrowUp'];
-		this.down = this.#keysByKey['s'] || this.#keysByKey['ArrowDown'];
-		this.left = this.#keysByKey['a'] || this.#keysByKey['ArrowLeft'];
-		this.right = this.#keysByKey['d'] || this.#keysByKey['ArrowRight'];
+		this.up = this.#keysByCode['KeyW'] || this.#keysByCode['ArrowUp'];
+		this.down = this.#keysByCode['KeyS'] || this.#keysByCode['ArrowDown'];
+		this.left = this.#keysByCode['KeyA'] || this.#keysByCode['ArrowLeft'];
+		this.right = this.#keysByCode['KeyD'] || this.#keysByCode['ArrowRight'];
 		// this.down = this.#keys[83] || this.#keys[40];
 		// this.left = this.#keys[65] || this.#keys[37];
 		// this.right = this.#keys[68] || this.#keys[39];

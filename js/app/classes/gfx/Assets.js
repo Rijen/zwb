@@ -50,10 +50,19 @@ let astMapStreet = new Asset("mapStreet", "res/textures/map_street.png", 800, 30
 for (let i = 0; i < 9; i++) {
 	astMapStreet['tile' + i] = astMapStreet.sheet.crop(800 * i, 0, 800, 300);
 }
+// astMapStreet.height=400
 
-let tiles = new Asset('tiles', 'res/textures/hex.png', 40, 28);
-tiles.canMove = tiles.sheet.crop(0,0,tiles.width,tiles.height)
-tiles.select = tiles.sheet.crop(40,0,tiles.width,tiles.height)
-tiles.default = tiles.sheet.crop(80,0,tiles.width,tiles.height)
+// let tiles = new Asset('tiles', 'res/textures/hex2.png', 40, 28);
+// tiles.canMove = tiles.sheet.crop(0, 0, tiles.width, tiles.height)
+// tiles.select = tiles.sheet.crop(40, 0, tiles.width, tiles.height)
+// tiles.default = tiles.sheet.crop(80, 0, tiles.width, tiles.height)
+// tiles.barrier = tiles.sheet.crop(120, 0, tiles.width, tiles.height)
+
+let testHex = new Asset('hexes', 'res/textures/hexes.png', 44, 32);
+testHex.default = testHex.sheet.crop(0, 0, 44, 32)
+testHex.barrier = testHex.sheet.crop(44, 0, 44, 32)
+testHex.canMove = testHex.sheet.crop(0, 32, 44, 32)
+testHex.select = testHex.sheet.crop(44, 32, 44, 32)
+testHex.notVisible = testHex.sheet.crop(0, 64, 44, 32)
 
 export { assetsCtl };

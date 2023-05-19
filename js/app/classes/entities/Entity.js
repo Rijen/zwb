@@ -1,37 +1,28 @@
-import Coords from "../map/Coords.js";
-export default class Entity {
+import GridEntity from "../map/GridEntity.js";
+import Tile from "../tiles/Tile.js";
+export default class Entity extends GridEntity {
 
 	//Координаты в пикселях
 	#x;
 	#y;
 	#width;
 	#height;
-	//координаты на сетке
-	#hexCoords
 
-	constructor(handler, q, r, width, height) {
-		this.#hexCoords = { q: q, r: r }
+
+	constructor(handler, width, height) {
+		super(0, 0)
 		this.#width = width
 		this.#height = height
 		this._handler = handler
-		this.place(q, r)
 	}
 
-	/**
-	 * Используются координаты гесогональной сетки
-	 * @param {*} x 
-	 * @param {*} y 
-	 */
-	place(q, r) {
-		this.#hexCoords = { q: q, r: r }
-		let pixelCoords = Coords.hex_to_pixel(q, r)
-		console.log(q,r)
+	tick(_dt) {
+		let pCoords = this.hex.toPixel
+		//Позиционируем в центр-низ гекса
 
-		this.#x = pixelCoords.x
-		this.#y = pixelCoords.y
+		this.#x = pCoords.x + 22
+		this.#y = pCoords.y + Tile.R_HEIGHT -5
 	}
-
-	tick(_dt) { }
 	render(_g) { }
 
 	get x() {
@@ -41,9 +32,6 @@ export default class Entity {
 		return this.#y;
 	}
 
-	get hexCoords() {
-		return this.#hexCoords
-	}
 	get width() {
 		return this.#width;
 	}
@@ -56,9 +44,7 @@ export default class Entity {
 	set y(y) {
 		this.#y = y;
 	}
-	set hexCoords(hexCoords) {
-		this.#hexCoords = hexCoords;
-	}
+
 	set width(width) {
 		this.#width = width;
 	}
