@@ -1,7 +1,9 @@
 import { assetsCtl as Assets } from "../gfx/Assets.js"
 
-const TILEWIDTH = 44;
-const TILEHEIGHT = 33;
+const TILEWIDTH = 33;
+const TILEHEIGHT = 25;
+// const TILEWIDTH = 44;
+// const TILEHEIGHT = 33;
 
 
 let tiles = []
@@ -33,8 +35,8 @@ export default class Tile {
 // Размеры используемые для отрисовки на карте
 // По X отступ между тайлами 2 PX
 // По Y - внахлест.
-Tile.R_WIDTH = 32;
-Tile.R_HEIGHT = 32;
+Tile.R_WIDTH = 24;
+Tile.R_HEIGHT = 24;
 // Tile.R_WIDTH = 42;
 // Tile.R_HEIGHT = 24;
 

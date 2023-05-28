@@ -42,9 +42,10 @@ export default class Game {
 
 	#run() {
 		this.#init();
-		var fps = 60;
+		var fps = 30;
 		var timePerTick = 1000 / fps;
-		// let timePerTick=1
+		// timePerTick=1
+
 		var delta = 0;
 		var now;
 		var lastTime = Date.now();
@@ -82,7 +83,8 @@ export default class Game {
 		this.#mouseManager = new MouseManager(handler)
 		this.#gameState = new GameState(handler);
 		this.#loadingState = new LoadingState(handler, this.#gameState);
-		State.state = this.#loadingState
+		State.state = this.#gameState
+		// State.state = this.#loadingState
 	}
 
 	#tick(_dt) {

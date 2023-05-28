@@ -17,7 +17,7 @@ export default class LoadingState extends State {
 
 	tick(dt) {
 		if (this.#prc < 100) {
-			this.#prc += 100 / dt / 1000
+			this.#prc += 1000 / dt / 1000
 		}
 		if (this.#prc > 100)
 			this.#prc = 100

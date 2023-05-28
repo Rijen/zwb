@@ -3,8 +3,10 @@ export default class MouseManager {
 	#mouseX
 	#mouseY
 	#handler
-
 	#gridEntity
+
+	#mousePress
+	#stopProp
 	constructor(handler) {
 		this.#handler = handler
 		var $canvas = $("#canvas");
@@ -15,9 +17,41 @@ export default class MouseManager {
 			e.preventDefault();
 			e.stopPropagation();
 			this.#mouseX = parseInt(e.clientX - offsetX);
-			this.#mouseY = parseInt(e.clientY - offsetY+$(window).scrollTop());
+			this.#mouseY = parseInt(e.clientY - offsetY + $(window).scrollTop());
 		}
-		this.#gridEntity = new GridEntity(0, 0)
+		window.onmousedown = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (this.#stopProp)
+				return
+			switch (e.buttons) {
+				case e.buttons & 1:
+					this.#mousePress = 'LMB'
+					break;
+				case e.buttons & 2:
+					this.#mousePress = 'RMB'
+					break;
+				case e.buttons & 4:
+					this.#mousePress = 'MMB'
+					break;
+				case e.buttons & 8:
+					this.#mousePress = 'BACK'
+					break;
+				case e.buttons & 16:
+					this.#mousePress = 'FORWARD'
+					break;
+			}
+
+		}
+		window.onmouseup = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			this.#mousePress = false
+			this.#stopProp = false
+		}
+	
+
+		this.#gridEntity = new GridEntity(0, 0, this.#handler)
 	}
 
 	tick() {
@@ -25,6 +59,13 @@ export default class MouseManager {
 			this.#mouseX + this.#handler.camera.xOffset,
 			this.#mouseY + this.#handler.camera.yOffset
 		)
+	}
+	stopPropagation() {
+		this.#mousePress = false
+		this.#stopProp = true
+	}
+	get click() {
+		return this.#mousePress
 	}
 	get mouseX() {
 		return this.#mouseX

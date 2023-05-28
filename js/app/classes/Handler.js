@@ -2,6 +2,7 @@ export default class Handler {
 	#game;
 	#map;
 	#player;
+	#constructMode;
 	constructor(game) {
 		this.#game = game
 	}
@@ -20,22 +21,27 @@ export default class Handler {
 		return this.#game.mouseManager
 	}
 
-	get camera(){
+	get camera() {
 		return this.#game.camera
 	}
 
-	get map(){
-		return this.#map
-	}
-	get player(){
+	get player() {
 		return this.#player
 	}
-
-	set map(map){
-		this.#map=map
-	}
-	set player(player){
+	set player(player) {
 		this.#player = player
+	}
+	get map() {
+		return this.#map
+	}
+	set map(map) {
+		this.#map = map
+	}
+	set constructMode(val) {
+		this.#constructMode = val
+	}
+	get constructMode() {
+		return this.#constructMode
 	}
 }
 

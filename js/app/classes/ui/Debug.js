@@ -8,14 +8,16 @@ export default class DebugUI {
         this.#handler = handler
 
         this.#panel = Assets.getAsset('msgPanel');
+
     }
 
     tick(dt) {
         this.dt = dt
+        this.usedMem = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024 * 100) / 100
     }
 
     render(g) {
-        let startY = this.#handler.height - this.#panel.height-10
+        let startY = this.#handler.height - this.#panel.height - 10
         g.cDrawImage(this.#panel.defCrop,
             10,
             startY,
@@ -26,12 +28,12 @@ export default class DebugUI {
         let gridX = mm.mouseX + this.#handler.camera.xOffset
         let gridY = mm.mouseY + this.#handler.camera.yOffset
 
-        let d3 = this.#handler.player.distanceTo(mm.gridEntity)
+
 
         g.fillStyle = '#3bd141';
         g.textAlign = 'left'
         g.font = '14px Jura'
-        startY-=5
+        // startY -= 5
         g.fillText(`Screen`, 20, startY + 15);
         g.fillText(`X: ${mm.mouseX}`, 80, startY + 15);
         g.fillText(`Y: ${mm.mouseY}`, 130, startY + 15);
@@ -42,11 +44,19 @@ export default class DebugUI {
         g.fillText(`Q: ${mm.gridEntity.cube.q}`, 20, startY + 60);
         g.fillText(`R: ${mm.gridEntity.cube.r}`, 60, startY + 60);
         g.fillText(`S: ${mm.gridEntity.cube.s}`, 100, startY + 60);
-        g.fillText(`D: ${d3}`, 150, startY + 60);
+
+        if (this.#handler.player) {
+            let d3 = this.#handler.player.distanceTo(mm.gridEntity)
+            g.fillText(`D: ${d3}`, 150, startY + 60);
+        }
+        if (mm.click) {
+            // this.#handler.player.setHex(mouseEntity.hex.q,mouseEntity.hex.r)
+            g.fillText(mm.click, 190, startY + 60);
+        }
 
 
-       
-        g.fillText(`FPS: ${Math.floor(1/this.dt)}`, 230, startY + 15);
-        g.fillText(`Δt: ${this.dt*1000}`, 230, startY + 30);
+        g.fillText(`FPS: ${Math.floor(1 / this.dt)}`, 230, startY + 15);
+        g.fillText(`Δt: ${this.dt * 1000}`, 230, startY + 30);
+        g.fillText(`Mem: ${this.usedMem}`, 230, startY + 45);
     }
 }

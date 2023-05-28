@@ -42,10 +42,13 @@ export default class Display {
 
 	#createDisplay() {
 		document.title = this.#title
-		var body = document.body
+		var body = document.getElementById('fightContainer')
 		body.innerHTML = `<canvas id='canvas' width='${this.#width}' height='${this.#height}'></canvas>`
 		this.#graphics = document.getElementById('canvas').getContext('2d');
-		// this.#graphics.scale(2,2) 
+		document.getElementById('canvas').oncontextmenu = (e) => {
+			e.preventDefault()
+		}
+		// this.#graphics.scale(1,1) 
 
 	}
 };

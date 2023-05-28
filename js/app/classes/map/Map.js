@@ -1,55 +1,42 @@
 import Tile from '../tiles/TileLoader.js';
 import { assetsCtl as Assets } from '../gfx/Assets.js';
 import GridEntity from './GridEntity.js';
-
-function pixel_to_cube(x, y) {
-    let q = Math.floor(x / Tile.R_WIDTH)
-    let r = Math.floor(((y) - q * Tile.R_HEIGHT / 2) / Tile.R_HEIGHT)
-    return { r: r, q: q, s: -q - r }
-}
+import PriorityQueue from '../utils/PriorityQueue.js';
+import BarrierLayer from './BarrierLayer.js';
 
 class HexTile extends GridEntity {
-
     #barrier
-
     set barrier(val) {
         this.#barrier = val
     }
-
     get barrier() {
         return this.#barrier
     }
 }
 
 export default class Map {
+    #handler
     #map_conf = {}
-    #width = 5
-    #height = 5
-    #mapSteetAsset
+    #width = 0
+    #height = 0
+    #mapAsset
     #map_size = {}
-    hexGrid = []
-    _handler
+    #hexGrid = {}
+
     #reachable = []
+    #maxDistance = 6
+    #leftDistance = this.#maxDistance
+    #selectedPath = []
+    //-------------------------
+    #drawReachable = true
+    //-------------------------
+    #barrierLayer
     constructor(map_name, handler) {
-        this._handler = handler
+        this.#handler = handler
         this.#loadMap(map_name)
-        this._handler.map = this
+        this.#handler.map = this
         this.#generateHexGrid()
-
-        console.log(this._handler.player)
-        console.log(this.hexGrid)
-
-    }
-
-    // placeEntity(entity, q, r) {
-    //     // let  = this.hexGrid.find(row => row.find(tile => tile.hex.q == q && tile.hex.r == r))
-    //     // if (!tile)
-    //     //     console.error('Out of bound')
-    //     entity.setHex(q, r)
-
-    // }
-    findTile(q, r) {
-
+        this.#barrierLayer = new BarrierLayer(this.#handler, this.#map_conf)
     }
 
     #loadMap(map_name) {
@@ -71,10 +58,10 @@ export default class Map {
 
         this.#map_conf = conf
 
-        this.#mapSteetAsset = Assets.getAsset(this.#map_conf.bgAsset)
+        this.#mapAsset = Assets.getAsset(this.#map_conf.bgAsset)
 
-        this.#map_size.tileW = this.#mapSteetAsset.width
-        this.#map_size.tileH = this.#mapSteetAsset.height
+        this.#map_size.tileW = this.#mapAsset.width
+        this.#map_size.tileH = this.#mapAsset.height
 
 
         this.#width = this.#map_conf.bg[0].length * this.#map_size.tileW
@@ -82,6 +69,26 @@ export default class Map {
 
     }
 
+    get hexGrid() {
+        return this.#hexGrid
+    }
+
+    get selectedPath() {
+        return this.#selectedPath
+    }
+
+    /**
+     * @param {boolean} val
+     */
+    set drawReachable(val) {
+        this.#drawReachable = val
+    }
+    get leftDistance() {
+        return this.#leftDistance
+    }
+    set leftDistance(val) {
+        this.#leftDistance = val
+    }
     #generateHexGrid() {
 
         for (let y = 0, rowId = 0;
@@ -92,18 +99,17 @@ export default class Map {
             for (let x = shift;
                 x <= this.#width - Tile.R_WIDTH / 2;
                 x += Tile.R_WIDTH) {
-                let cx = (x - shift) / Tile.R_WIDTH,
-                    cy = y / Tile.R_HEIGHT
-                let tile = new HexTile(x, y)
-                if (!this.hexGrid[cy])
-                    this.hexGrid[cy] = []
-                this.hexGrid[cy][cx] = tile
 
-                tile.barrier = this.#map_conf.barriers
-                    .find(el => el.q == tile.hex.q && el.r == tile.hex.r)
+                let tile = new HexTile(x, y, this.#handler)
+                tile.visible = true;
+                this.#hexGrid['q' + tile.hex.q + 'r' + tile.hex.r] = tile
 
             }
         }
+    }
+
+    findHex(cube) {
+        return this.#hexGrid[`q${cube.q}r${cube.r}`]
     }
 
     #render_background(g, xOffset, yOffset) {
@@ -117,7 +123,7 @@ export default class Map {
             row.forEach((tile, x) => {
                 let drawX = x * this.#map_size.tileW - xOffset
                 let drawY = y * this.#map_size.tileH - yOffset
-                g.cDrawImage(this.#mapSteetAsset[tile],
+                g.cDrawImage(this.#mapAsset[tile],
                     drawX, drawY,
                     this.#map_size.tileW, this.#map_size.tileH)
             })
@@ -127,275 +133,213 @@ export default class Map {
 
 
     tick(dt) {
-        this.#reachable = this.#cubeReachable(this._handler.player.cube, 6)
-    }
+        let mouseEntity = this.#handler.mouseManager.gridEntity
 
-    #cubeReachable(start, distance) {
-        let visited = []
-        visited.push(start)
-        let fringes = []
-        fringes.push([start])
-
-        for (let d = 1; d <= distance; d++) {
-            fringes[d - 1].forEach(cube => {
-                if (!fringes[d])
-                    fringes[d] = []
-                for (let dir = 0; dir < 6; dir++) {
-                    let neighbor_coord = cube.neighbor(dir)
-                    let findHex = this.hexGrid.map(row =>
-                        row.find(tile => neighbor_coord.equal(tile.cube))
-                    ).find(item => item)
-
-                    if (!findHex)
-                        continue
-                    let neighbor = findHex.cube
-                    // let visitFind = visited.find(a => a.q == neighbor.q && a.r == neighbor.r && a.s == neighbor.s)
-                    if (!findHex.barrier && !visited.includes(neighbor)) {
-                        visited.push(neighbor)
-                        fringes[d].push(neighbor)
-                    }
-                }
-            })
+        if (!this.#handler.constructMode) {
+            this.#selectedPath = this.findPath(this.#handler.player, mouseEntity.cube)
+            //TODO - дистанция = ОД/цена перемешения
+            if (this.#handler.player.posChanged) {
+                this.#reachable = this.#handler.player.cubeReachable(this.#leftDistance)
+                Object.values(this.#hexGrid).forEach(tile => {
+                    tile.visible = !tile.calculateHexRay(this.#handler.player)
+                })
+            }
         }
-        let flatFringes = []
-        fringes.forEach((row, dst) => {
-            const rowWithDst = row.map(item => { return { cube: item, d: dst } })
-            flatFringes.push(...rowWithDst)
-        })
-        return flatFringes
-        // return fringes
     }
 
-
-    getAngle(a, b) {
-        if (a.x == 0 && a.y == 0)
-            a.x = 1
-
-        // Получим косинус угла по формуле
-        let cos = (a.x * b.x + a.y * b.y) / (Math.sqrt(a.x * a.x + a.y * a.y) * Math.sqrt(b.x * b.x + b.y * b.y));
-        // Вернем arccos полученного значения (в радианах!)
-        return Math.acos(cos)
-    }
-
-    #checkVisibility(tile, g) {
-
-        let visible = true
-        let player = this._handler.player
-
-
-
-        let shiftX = this._handler.camera.xOffset - 4,
-            shiftY = this._handler.camera.yOffset
-        let cursor = { x: tile.toPixel.x + (Tile.R_WIDTH / 2), y: tile.toPixel.y + (Tile.R_HEIGHT / 2) }
-
-
-        // g.fillStyle = '#00ff00';
-        // g.fillRect(
-        //     cursor.x - shiftX - 4,
-        //     cursor.y - shiftY - 4, 8, 8)
-
-        let xDirection = -((tile.toPixel.x - player.toPixel.x) / 50)
-        let yDirection = -((tile.toPixel.y - player.toPixel.y) / 50)
-        let distHexPlayer = player.distanceTo(tile)
-
-
-        let tmpCube = pixel_to_cube(cursor.x, cursor.y)
-        do {
-            distHexPlayer = player.cube.distanceTo(tmpCube)
-            if (!distHexPlayer)
-                continue
-
-            let findBarrier = this.#map_conf.barriers.find(item => {
-                return item.q == tmpCube.q && item.r == tmpCube.r
-            })
-
-            if (findBarrier) {
-                visible = false
-                break
-            }
-            // //уменьшаем координаты пока не сменится гекс
-            let prevTmpCube = { ...tmpCube }
-            while (prevTmpCube.q == tmpCube.q && prevTmpCube.r == tmpCube.r) {
-                cursor.x += xDirection
-                cursor.y += yDirection
-
-                tmpCube = pixel_to_cube(cursor.x, cursor.y)
-                // g.fillStyle = '#ff0000';
-                // g.fillRect(
-                //     cursor.x - shiftX,
-                //     cursor.y - shiftY, 1, 1)
-            }
-
-        } while (distHexPlayer > 0 && distHexPlayer < 51)
-
-        return visible
-    }
 
     #drawLineFromCursor(g) {
-        let tile = this._handler.mouseManager.gridEntity
+        let mouseEntity = this.#handler.mouseManager.gridEntity,
+            player = this.#handler.player
+        let dstHex = this.#handler.map.findHex(mouseEntity.cube)
+        if (!dstHex || dstHex.reachable)
+            return
 
-        let player = this._handler.player
+        let barrier = player.calculateHexRay(mouseEntity)
+        let dist = player.distanceTo(mouseEntity)
+        let shiftX = this.#handler.camera.xOffset - Tile.TILEWIDTH / 2,
+            shiftY = this.#handler.camera.yOffset - Tile.TILEHEIGHT / 2
 
+        g.beginPath();
 
+        g.moveTo(player.toPixel.x - shiftX, player.toPixel.y - shiftY);
 
-        let shiftX = this._handler.camera.xOffset - 4,
-            shiftY = this._handler.camera.yOffset
-        let cursor = { x: player.toPixel.x + (Tile.R_WIDTH / 2), y: player.toPixel.y + (Tile.R_HEIGHT / 2) }
+        if (!barrier || barrier.transparent) {
+            //TODO Прицельная дальность
+            if (dist > 12)
+                g.strokeStyle = '#ff0000aa';
+            else
+                g.strokeStyle = '#00ff00aa';
+        } else
+            g.strokeStyle = '#ffff00aa';
 
-
-        // g.fillStyle = '#00ff00';
-        // g.fillRect(
-        //     cursor.x - shiftX - 4,
-        //     cursor.y - shiftY - 4, 8, 8)
-        let distHexPlayer = player.distanceTo(tile)
-        let xDirection = ((tile.toPixel.x - player.toPixel.x) / (distHexPlayer * 7))
-        let yDirection = ((tile.toPixel.y - player.toPixel.y) / (distHexPlayer * 7))
-
-
-
-        let tmpCube = pixel_to_cube(cursor.x, cursor.y)
-        let distHexTile = tile.cube.distanceTo(tmpCube)
-        let visible = true
-        do {
-            distHexTile = tile.cube.distanceTo(tmpCube)
-            distHexPlayer = player.distanceTo(tile)
-            if (!distHexPlayer)
-                continue
-            let findBarrier = this.#map_conf.barriers.find(item => {
-                return item.q == tmpCube.q && item.r == tmpCube.r
-            })
-            if (findBarrier)
-                visible = false
-
-            // //уменьшаем координаты пока не сменится гекс
-            let prevTmpCube = { ...tmpCube }
-            while (prevTmpCube.q == tmpCube.q && prevTmpCube.r == tmpCube.r) {
-                cursor.x += xDirection
-                cursor.y += yDirection
-
-                tmpCube = pixel_to_cube(cursor.x, cursor.y)
-
-                if (!visible)
-                    g.fillStyle = '#ffff00';
-                else
-                    g.fillStyle = '#00ff00';
-
-                g.fillRect(
-                    cursor.x - shiftX,
-                    cursor.y - shiftY, 1, 1)
-            }
-
-        } while (distHexTile > 0 && distHexTile < 51)
-
-
+        g.lineTo(mouseEntity.toPixel.x - shiftX, mouseEntity.toPixel.y - shiftY);
+        g.stroke();
     }
+
 
     #renderTile(g, tile, x, y) {
 
-        let distHexPlayer = this._handler.player.distanceTo(tile)
-        tile.visible = this.#checkVisibility(tile, g)
-
-        let mm = this._handler.mouseManager
-        let distHexMouse = mm.gridEntity.distanceTo(tile)
-        let distPlayerMouse = this._handler.player.distanceTo(mm.gridEntity)
-
-
-        let currentReachable = this.#reachable.find(rItem => rItem.cube.equal(tile.cube))
-
-        if (distHexPlayer == 0) {
-
-        } else {
-            if (tile.barrier) {
-                Tile.barrierTile.render(g, x, y);
-                return
-            }
-
-            if (currentReachable) {
-                // if (distHexPlayer<=5) {
-                if (distHexMouse == 0) {
-                    Tile.selectTile.render(g, x, y);
-                }
-                else {
-                    if (tile.visible) {
-                        Tile.canMoveTile.render(g, x, y);
-                    } else {
-                        Tile.notVisibleTile.render(g, x, y);
-                    }
-                }
-                // Tile.canMoveTile.render(g, x, y);
-                g.font = 'bold 15px Jura'
+        if (tile.reachable) {
+            // if (distHexPlayer<=5) {
+            if (tile.path) {
+                Tile.selectTile.render(g, x, y);
+                Tile.canMoveTile.render(g, x, y);
+                g.font = 'bold 13px Jura'
                 g.fillStyle = '#000000';
                 g.textAlign = 'center'
-                g.fillText(`<${currentReachable.d}>`, x + 22, y + 16);
+                g.fillText(`${tile.reachable.d}`, x + 16, y + 16);
 
             }
             else {
-                if (distHexMouse == 0)
-                    Tile.barrierTile.render(g, x, y);
-                else if (!tile.visible)
+                if (!tile.visible) {
                     Tile.notVisibleTile.render(g, x, y);
+                    g.globalAlpha = 0.5
+                }
 
+                Tile.canMoveTile.render(g, x, y);
+                g.globalAlpha = 1
             }
 
+
+        }
+        else {
+            if (!tile.visible)
+                Tile.notVisibleTile.render(g, x, y);
+
         }
 
-        // g.font = '8px monospace'
-        // g.fillStyle = '#fff';
-        // g.textAlign = 'center'
-        // g.fillText(`${tile.hex.q}:${tile.hex.r}:${tile.cube.s}`, x + 20, y + 15);
-        // g.fillText(`<${distHexPlayer}>`, x + 20, y + 25);
+
+
     }
 
-    drawHexagon(g, x, y) {
-        let a = 2 * Math.PI / 6;
-        let r = 18;
-        let ctx = g
-        ctx.beginPath();
-        for (var i = 0; i < 6; i++) {
-            ctx.lineTo(x + r * Math.cos(a * i), y + r * Math.sin(a * i));
-        }
-        ctx.closePath();
-        ctx.stroke();
-    }
-    render(g) {
-
-        let xOffset = this._handler.camera.xOffset
-        let yOffset = this._handler.camera.yOffset
+    /**
+     * Pixel in visible area
+     * @param {Object{x,y}} pC 
+     * @returns {bool}
+     */
+    pixelInCamera(pC) {
+        let xOffset = this.#handler.camera.xOffset
+        let yOffset = this.#handler.camera.yOffset
 
         let xStart = Math.max(0, Math.round(xOffset))
         let yStart = Math.max(0, Math.round(yOffset))
-        let xEnd = Math.min(this.#width, xOffset + this._handler.width)
-        let yEnd = Math.min(this.#height, yOffset + this._handler.height)
+        let xEnd = Math.min(this.#width, xOffset + this.#handler.width)
+        let yEnd = Math.min(this.#height, yOffset + this.#handler.height)
+
+        if (pC.x < xStart - Tile.R_WIDTH || pC.x > xEnd - Tile.R_WIDTH)
+            return false
+        if (pC.y < yStart - Tile.R_HEIGHT || pC.y > yEnd + Tile.R_HEIGHT)
+            return false
+        return true
+    }
+
+    render(g) {
+
+        let xOffset = this.#handler.camera.xOffset
+        let yOffset = this.#handler.camera.yOffset
 
         this.#render_background(g, xOffset, yOffset)
 
-        this.hexGrid.forEach((row, r) => {
-            row.forEach((tile, q) => {
+        Object.values(this.#hexGrid).forEach(tile => {
+            let pC = tile.toPixel
+            if (!this.pixelInCamera(pC))
+                return
 
-                let pC = tile.toPixel
-                if (pC.x < xStart - Tile.R_WIDTH || pC.x > xEnd)
-                    return
-                if (pC.y < yStart - Tile.R_HEIGHT || pC.y > yEnd + Tile.R_HEIGHT)
-                    return
+            tile.reachable = false
+            if (this.#drawReachable)
+                tile.reachable = this.#reachable.find(rItem => rItem.cube.equal(tile.cube))
 
-                // this.drawHexagon(g, pC.x - xOffset, pC.y - yOffset)
-                // let txtr = Assets.getAsset('testHex').defCrop
-                // g.cDrawImage(txtr, pC.x - xOffset,  pC.y - yOffset, 44, 32);
-                this.#renderTile(g, tile, pC.x - xOffset, pC.y - yOffset)
-            })
+            this.#renderTile(g, tile, pC.x - xOffset, pC.y - yOffset)
+            if (this.#handler.constructMode ) {
+                this.#barrierLayer.renderTile(g, tile)
+            }
+            tile.path = false
         })
 
-        this.#drawLineFromCursor(g)
-        // let wM = 210
-        // g.beginPath();
-        // g.moveTo(wM, 0);
-        // g.lineTo(this._handler.width - wM, this._handler.height);
-        // g.moveTo(wM, this._handler.height);
-        // g.lineTo(this._handler.width - wM, 0);
-        // g.stroke();
+        if (!this.#handler.constructMode) {
+            this.#drawLineFromCursor(g)
+        }
+
+        // this.findPath(g, this.#handler.player, { q: 13, r: -1 })
 
     }
 
+
+
+
+
+    findPath(src, dst) {
+        let maxDistance = this.#leftDistance
+        let frontier = new PriorityQueue()
+        let visited = []
+
+        let came_from = {},
+            cost_so_far = {}
+
+        let dstHex = this.#handler.map.findHex(dst)
+        if (!dstHex || !dstHex.reachable)
+            return
+
+        frontier.add(src.cube, 0)
+        came_from[src.cube] = null
+        cost_so_far[`${src.cube.q}:${src.cube.r}`] = 0
+
+        let current = frontier.shift()
+        do {
+
+            for (let dir = 0; dir < 6; dir++) {
+
+                let next = current.neighbor(dir)
+                if (visited.find(e => e.q == next.q && e.r == next.r))
+                    continue
+                visited.push(next)
+                if (!Object.values(came_from).find(e => e && e.q == next.q && e.r == next.r)) {
+
+                    let findHex = this.#handler.map.findHex(next)
+                    let distance = src.cube.distanceTo(next)
+                    if (!findHex ||
+                        findHex.barrier ||
+                        !findHex.reachable ||
+                        distance > maxDistance
+                    )
+                        continue
+
+                    let new_cost = cost_so_far[`${current.q}:${current.r}`] + 1
+
+                    if (!cost_so_far[`${next.q}:${next.r}`] || new_cost < cost_so_far[`${next.q}:${next.r}`]) {
+                        cost_so_far[`${next.q}:${next.r}`] = new_cost
+                        came_from[`${next.q}:${next.r}`] = current
+                        let priority = new_cost + dst.distanceTo(next)
+                        frontier.add(next, priority)
+                    }
+
+                }
+
+            }
+            current = frontier.shift()
+            if (current && current.equal(dst))
+                break
+        } while (current)
+
+
+
+        current = dst
+        let path = []
+        let step = 1
+        while (current && !src.cube.equal(current)) {
+            path.push(current)
+            let findHex = this.#handler.map.findHex(current)
+            findHex.path = step
+            step++
+            current = came_from[`${current.q}:${current.r}`]
+            if (!current) {
+                continue
+            }
+
+        }
+        return path
+    }
 
     get height() {
         return this.#height
