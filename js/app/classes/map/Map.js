@@ -1,5 +1,5 @@
 import Tile from '../tiles/TileLoader.js';
-import { assetsCtl as Assets } from '../gfx/Assets.js';
+import { assetsCtl as Assets, staticObjs as staticAssets } from '../gfx/Assets.js';
 import GridEntity from './GridEntity.js';
 import PriorityQueue from '../utils/PriorityQueue.js';
 import BarrierLayer from './BarrierLayer.js';
@@ -31,6 +31,7 @@ export default class Map {
     #drawReachable = true
     //-------------------------
     #barrierLayer
+
     constructor(map_name, handler) {
         this.#handler = handler
         this.#loadMap(map_name)
@@ -67,6 +68,8 @@ export default class Map {
         this.#width = this.#map_conf.bg[0].length * this.#map_size.tileW
         this.#height = this.#map_conf.bg.length * this.#map_size.tileH
 
+
+
     }
 
     get hexGrid() {
@@ -90,7 +93,10 @@ export default class Map {
         this.#leftDistance = val
     }
     #generateHexGrid() {
-
+        let decorFlat = []
+        this.#map_conf.decor.forEach(e => {
+            decorFlat[`q${e.q}r${e.r}`] = e
+        })
         for (let y = 0, rowId = 0;
             y <= this.#height;
             y += Tile.R_HEIGHT, rowId++) {
@@ -102,6 +108,7 @@ export default class Map {
 
                 let tile = new HexTile(x, y, this.#handler)
                 tile.visible = true;
+                tile.asset = decorFlat[`q${tile.hex.q}r${tile.hex.r}`]
                 this.#hexGrid['q' + tile.hex.q + 'r' + tile.hex.r] = tile
 
             }
@@ -149,6 +156,10 @@ export default class Map {
 
 
     #drawLineFromCursor(g) {
+
+        let xOffset = this.#handler.camera.xOffset
+        let yOffset = this.#handler.camera.yOffset
+
         let mouseEntity = this.#handler.mouseManager.gridEntity,
             player = this.#handler.player
         let dstHex = this.#handler.map.findHex(mouseEntity.cube)
@@ -157,8 +168,8 @@ export default class Map {
 
         let barrier = player.calculateHexRay(mouseEntity)
         let dist = player.distanceTo(mouseEntity)
-        let shiftX = this.#handler.camera.xOffset - Tile.TILEWIDTH / 2,
-            shiftY = this.#handler.camera.yOffset - Tile.TILEHEIGHT / 2
+        let shiftX = xOffset - Tile.TILEWIDTH / 2,
+            shiftY = yOffset - Tile.TILEHEIGHT / 2
 
         g.beginPath();
 
@@ -193,8 +204,8 @@ export default class Map {
             }
             else {
                 if (!tile.visible) {
-                    Tile.notVisibleTile.render(g, x, y);
-                    g.globalAlpha = 0.5
+                    // Tile.notVisibleTile.render(g, x, y);
+                    // g.globalAlpha = 0.5
                 }
 
                 Tile.canMoveTile.render(g, x, y);
@@ -204,12 +215,10 @@ export default class Map {
 
         }
         else {
-            if (!tile.visible)
-                Tile.notVisibleTile.render(g, x, y);
+            // if (!tile.visible)
+            // Tile.notVisibleTile.render(g, x, y);
 
         }
-
-
 
     }
 
@@ -234,6 +243,43 @@ export default class Map {
         return true
     }
 
+
+    #renderDecor(g) {
+        let xOffset = this.#handler.camera.xOffset
+        let yOffset = this.#handler.camera.yOffset
+
+
+        Object.values(this.#hexGrid).forEach(tile => {
+
+            if (tile.asset) {
+                let decoAsset = staticAssets[tile.asset.asset].d
+                let pC = tile.toPixel
+                if (tile.asset.rotate) {
+                    g.save();
+                    g.scale(-1, 1);
+                    g.cDrawImage(
+                        decoAsset,
+                        -pC.x + xOffset - decoAsset.width,
+                        pC.y - yOffset,
+                        decoAsset.width, decoAsset.height)
+                    g.restore();
+                } else {
+                    g.cDrawImage(
+                        decoAsset,
+                        pC.x - xOffset,
+                        pC.y - yOffset,
+                        decoAsset.width, decoAsset.height)
+                }
+                if (this.#handler.constructMode) {
+                    g.fillStyle = 'rgba(0,200,200,0.9)';
+                    g.fillRect(
+                        pC.x - xOffset - 4 + Tile.TILEWIDTH / 2,
+                        pC.y - yOffset - 4 + Tile.TILEHEIGHT / 2, 8, 8)
+                }
+            }
+        })
+
+    }
     render(g) {
 
         let xOffset = this.#handler.camera.xOffset
@@ -241,27 +287,39 @@ export default class Map {
 
         this.#render_background(g, xOffset, yOffset)
 
+
         Object.values(this.#hexGrid).forEach(tile => {
             let pC = tile.toPixel
-            if (!this.pixelInCamera(pC))
-                return
+            // if (!this.pixelInCamera(pC))
+            //     return
 
             tile.reachable = false
             if (this.#drawReachable)
                 tile.reachable = this.#reachable.find(rItem => rItem.cube.equal(tile.cube))
 
             this.#renderTile(g, tile, pC.x - xOffset, pC.y - yOffset)
-            if (this.#handler.constructMode ) {
-                this.#barrierLayer.renderTile(g, tile)
-            }
+
             tile.path = false
+
+
         })
+
 
         if (!this.#handler.constructMode) {
             this.#drawLineFromCursor(g)
+            this.#handler.player.render(g)
         }
+        this.#renderDecor(g)
+        // this.#renderImg(g)
 
+        if (this.#handler.constructMode) {
+            Object.values(this.#hexGrid).forEach(tile => {
+                this.#barrierLayer.renderTile(g, tile)
+            })
+        }
         // this.findPath(g, this.#handler.player, { q: 13, r: -1 })
+
+
 
     }
 

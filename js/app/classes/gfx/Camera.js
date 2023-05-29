@@ -55,9 +55,9 @@ export default class Camera {
         if (this.#xOffset < 0)
             this.#xOffset = 0
         else if (
-            this.#xOffset > this.#handler.map.width - this.#handler.width//+200
+            this.#xOffset > this.#handler.map.width - this.#handler.width+200
         ) {
-            this.#xOffset = this.#handler.map.width - this.#handler.width//+200
+            this.#xOffset = this.#handler.map.width - this.#handler.width+200
         }
         if (this.#yOffset < -75)
             this.#yOffset = -75

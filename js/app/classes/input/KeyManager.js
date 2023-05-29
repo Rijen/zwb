@@ -12,12 +12,16 @@ export default class KeyManager {
 			this.#keysByCode[e.code] = false;
 		}
 	}
-
+	stopPropagation() {
+		this.#keys = [];
+		this.#keysByCode = [];
+	}
 	tick() {
 		this.up = this.#keysByCode['KeyW'] || this.#keysByCode['ArrowUp'];
 		this.down = this.#keysByCode['KeyS'] || this.#keysByCode['ArrowDown'];
 		this.left = this.#keysByCode['KeyA'] || this.#keysByCode['ArrowLeft'];
 		this.right = this.#keysByCode['KeyD'] || this.#keysByCode['ArrowRight'];
+		this.keyR = this.#keysByCode['KeyR'];
 		// this.down = this.#keys[83] || this.#keys[40];
 		// this.left = this.#keys[65] || this.#keys[37];
 		// this.right = this.#keys[68] || this.#keys[39];

@@ -27,17 +27,17 @@ export default class GameState extends State {
 			this.#player = new Player(handler, 'Rijen');
 			// this.#player2 = new Player(handler, 6, 17, 'Машина для убийств зомбей бензопилой по вторникам и пятницам после обеда');
 			handler.player = this.#player
-			this.#player.setHex(7, 4)
+			this.#player.setHex(16, 3)
 			handler.camera.centerOnEntity(this.#player)
+		} else {
+			this.#constructUI = new Construct(handler)
 		}
 		// this.#player.setHex(35, -8)
 
 
 		this.#debugUI = new DebugUI(handler)
-		this.#constructUI = new Construct(handler)
 
-
-		this.bigFrame = Assets.getAsset('bigFrame');
+		// this.bigFrame = Assets.getAsset('bigFrame');
 	}
 
 	get constructMode() {
@@ -63,7 +63,7 @@ export default class GameState extends State {
 		g.fillRect(0, 0, this._handler.width, this._handler.height);
 		this.#map.render(g)
 		if (!this.#constructMode) {
-			this.#player.render(g)
+
 			this.renderNightWrap(g)
 			this.#debugUI.render(g)
 		}
@@ -80,7 +80,7 @@ export default class GameState extends State {
 		// 	0,
 		// 	this.bigFrame.width, this.bigFrame.height)
 
-		
+
 
 	}
 
